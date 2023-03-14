@@ -6,7 +6,7 @@ import java.util.ArrayList;
  * a transfer object that is a list of assignment details
  */
 public class AssignmentListDTO {
-
+	
 	public static class AssignmentDTO {
 		public int assignmentId;
 		public String assignmentName;
@@ -60,9 +60,7 @@ public class AssignmentListDTO {
 				return false;
 			return true;
 		}
-		
-		
-		
+
 	}
 
 	public ArrayList<AssignmentDTO> assignments = new ArrayList<>();
