@@ -19,6 +19,7 @@ import static org.mockito.Mockito.verify;
 
 import java.util.Optional;
 
+import com.cst438.controllers.AssignmentController;
 import com.cst438.controllers.GradeBookController;
 import com.cst438.domain.Assignment;
 import com.cst438.domain.AssignmentGrade;
@@ -46,7 +47,7 @@ import org.springframework.test.context.ContextConfiguration;
  *  addFilters=false turns off security.  (I could not get security to work in test environment.)
  *  WebMvcTest is needed for test environment to create Repository classes.
  */
-@ContextConfiguration(classes = { GradeBookController.class })
+@ContextConfiguration(classes = { GradeBookController.class , AssignmentController.class})
 @AutoConfigureMockMvc(addFilters = false)
 @WebMvcTest
 public class JunitTestGradebook {
@@ -243,6 +244,50 @@ public class JunitTestGradebook {
 		verify(assignmentGradeRepository, times(1)).save(updatedag);
 	}
 
+	@Test
+	public void addAssignment() throws Exception{
+
+		MockHttpServletResponse response;
+
+		
+		Course course = new Course();
+		course.setCourse_id(123456);
+		course.setInstructor(TEST_INSTRUCTOR_EMAIL);
+		course.setSemester(TEST_SEMESTER);
+		course.setYear(TEST_YEAR);
+		course.setTitle("test_course");
+		course.setAssignments(new java.util.ArrayList<Assignment>());
+		
+		Assignment assignment = new Assignment();
+		assignment.setId(1);
+		java.sql.Date dueDate = new java.sql.Date(System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000);
+		assignment.setDueDate(dueDate);
+		assignment.setName("Assignment 1");
+		assignment.setNeedsGrading(1);
+		assignment.setCourse(course);
+		course.getAssignments().add(assignment);
+		
+		given(courseRepository.findById(TEST_COURSE_ID)).willReturn(Optional.of(course));
+		given(assignmentRepository.findById(1)).willReturn(Optional.of(assignment));
+		
+		response = mvc
+				.perform(MockMvcRequestBuilders.put("/addAssignment/"+123456).accept(MediaType.APPLICATION_JSON)
+						.content(asJsonString("{ \"dueDate\": \""+ dueDate +"\", \"name\": \"Assignment 1\"}")).contentType(MediaType.APPLICATION_JSON))
+				.andReturn().getResponse();
+		
+		assertEquals(200, response.getStatus());
+		
+		verify(assignmentRepository, times(1)).save(any(Assignment.class));
+		
+		Assignment result = fromJsonString(response.getContentAsString(), Assignment.class);
+		
+		assertEquals(1, result.getId());
+		assertEquals(1, result.getNeedsGrading());
+		assertEquals("Assignment 1", result.getName());
+		assertEquals(course, result.getCourse());
+		
+	}
+	
 	private static String asJsonString(final Object obj) {
 		try {
 
