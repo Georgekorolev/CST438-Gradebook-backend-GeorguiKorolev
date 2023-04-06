@@ -74,5 +74,9 @@ public class Course {
 		return "Course [course_id=" + course_id + ", title=" + title + ", instructor=" + instructor + ", year=" + year
 				+ ", semester=" + semester + "]";
 	}
+
+	public CourseDTO toDTO(){
+		return new CourseDTO(course_id, title, instructor, year, semester);
+	}
 	
 }
