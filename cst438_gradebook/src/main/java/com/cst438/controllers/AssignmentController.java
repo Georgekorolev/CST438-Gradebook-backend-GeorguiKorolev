@@ -1,9 +1,8 @@
 package com.cst438.controllers;
 
 import java.sql.Date;
-import java.util.ArrayList;
+import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -12,25 +11,31 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.cst438.domain.Assignment;
 import com.cst438.domain.AssignmentDTO;
 import com.cst438.domain.AssignmentRepository;
+import com.cst438.domain.AssignmentGrade;
+import com.cst438.domain.AssignmentGradeRepository;
 import com.cst438.domain.Course;
 import com.cst438.domain.CourseRepository;
 
 @RestController
+@CrossOrigin(origins = {"http://localhost:3000"})
 public class AssignmentController {
 	
 	@Autowired
-	AssignmentRepository assignmentRepository;
-	
-	@Autowired
 	CourseRepository courseRepository;
+
+	@Autowired
+	AssignmentRepository assignmentRepository;
+
+	@Autowired
+	AssignmentGradeRepository assignmentGradeRepository;
 	
 	@GetMapping("/assignment/{id}")
 	public AssignmentDTO assignment(@PathVariable("id") Integer assignmentId) {
@@ -57,7 +62,9 @@ public class AssignmentController {
 		
 		assignment.setDueDate(Date.valueOf(assignmentDTO.dueDate));
 		assignment.setName(assignmentDTO.name);
-		assignment.setNeedsGrading(assignmentDTO.needsGrading);
+		if(assignment.getDueDate().compareTo(Date.valueOf(LocalDate.now())) < 1) {
+			assignment.setNeedsGrading(1);
+		} else assignment.setNeedsGrading(0);
 		assignment.setCourse(course);
 		
 		assignmentRepository.save(assignment);
@@ -82,11 +89,28 @@ public class AssignmentController {
 	@Transactional
 	public AssignmentDTO deleteAssignment (@RequestBody AssignmentDTO assignmentDTO) {
 		Assignment assignment = assignmentRepository.findById(assignmentDTO.assignmentId).orElse(null);
-		if(assignment.getGrades() == null || assignment.getGrades().isEmpty()) {
+		if(assignment == null) {
+			throw new ResponseStatusException( HttpStatus.NOT_FOUND, "Assignment does not exist. " );
+		}
+		List<AssignmentGrade> grades = assignment.getGrades();
+		boolean isDeletable = true;
+
+		for (AssignmentGrade assignmentGrade : grades) {
+			if(!assignmentGrade.getScore().equals("")){
+				isDeletable = false;
+				break;
+			}
+		}
+
+		if(isDeletable) {
+			for (AssignmentGrade assignmentGrade : grades) {
+				assignmentGradeRepository.deleteById(assignmentGrade.getId());
+			}
 			assignmentRepository.deleteById(assignment.getId());
 			return assignment.toDTO();
 		}
-		System.out.println("Error: cannot delete graded assignments");
-		return null;
+
+		throw new ResponseStatusException( HttpStatus.PRECONDITION_FAILED, "Assignment with grades cannot be deleted. " );
+
 	}
 }
