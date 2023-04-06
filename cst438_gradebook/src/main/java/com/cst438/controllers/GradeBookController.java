@@ -21,7 +21,9 @@ import com.cst438.domain.AssignmentGrade;
 import com.cst438.domain.AssignmentGradeRepository;
 import com.cst438.domain.AssignmentRepository;
 import com.cst438.domain.Course;
+import com.cst438.domain.CourseDTO;
 import com.cst438.domain.CourseDTOG;
+import com.cst438.domain.CourseListDTO;
 import com.cst438.domain.CourseRepository;
 import com.cst438.domain.Enrollment;
 import com.cst438.domain.GradebookDTO;
@@ -42,6 +44,20 @@ public class GradeBookController {
 	
 	@Autowired
 	RegistrationService registrationService;
+
+	// get courses for the instructor
+	@GetMapping("/courses")
+	public CourseListDTO getInstructorsCourses( ) {
+		
+		String email = "dwisneski@csumb.edu";  // user name (should be instructor's email) 
+		
+		List<Course> courses = courseRepository.findCoursesByInstructorEmail(email);
+		CourseListDTO result = new CourseListDTO();
+		for (Course c: courses) {
+			result.courses.add(new CourseDTO(c.getCourse_id(), c.getTitle(), c.getInstructor(), c.getYear() , c.getSemester()));
+		}
+		return result;
+	}
 	
 	// get assignments for an instructor that need grading
 	@GetMapping("/gradebook")
